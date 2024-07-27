@@ -59,6 +59,12 @@ typedef void* LPVOID;
 #ifndef SUCCEEDED
 #define SUCCEEDED(hr) (((HRESULT)(hr)) >= 0)
 #endif
+//#include "RawWinAPI.h"
+// REM: might end up needing these
+//#define WIN32_LEAN_AND_MEAN
+//#include <windows.h>
+//#include <minwindef.h>
+
 
 #ifndef COM_REQUIRE_SUCCESS
 #define COM_REQUIRE_SUCCESS(hr, comFuncPtrs, msg, ...) \
