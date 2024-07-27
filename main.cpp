@@ -157,6 +157,36 @@ void showMenu() {
     std::wcout << L"Choose an option: ";
 }
 
+int getUserMenuChoice(int min, int max, bool acceptsDefaultNoInput) {
+    int choice;
+    while (true) {
+        std::wstring input;
+        std::getline(std::wcin, input);
+        input = trim(input);
+        if (input.empty() && acceptsDefaultNoInput) {
+            return -1;
+        }
+        if (input.empty()) {
+            std::wcerr << L"Invalid input. Please enter a number." << std::endl;
+            showMenu();
+            continue;
+        }
+        std::wstringstream ss(input);
+        if (ss >> choice) {
+            if (choice >= min && choice <= max) {
+                break;
+            } else {
+                std::wcerr << L"Invalid choice. Please enter a number between 1 and 3." << std::endl;
+                showMenu();
+            }
+        } else {
+            std::wcerr << L"Invalid input. Please enter a valid number." << std::endl;
+            showMenu();
+        }
+    }
+    return choice;
+}
+
 int main() {
     COMFunctionPointers comFuncs = LoadCOMFunctionPointers();
 
@@ -173,9 +203,7 @@ int main() {
     }
 
     showMenu();
-    int choice;
-    std::wcin >> choice;
-    std::wcin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    int choice = getUserMenuChoice(1, 3, true);
     bool isSaveDialog = (choice == 2);
 
     IFileDialog* pFileDialog = NULL;
