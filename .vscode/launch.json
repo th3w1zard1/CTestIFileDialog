@@ -37,6 +37,7 @@
             "program": "${workspaceFolder}\\build\\debug\\main.exe",
             "args": [],
             "stopAtEntry": false,
+            "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": true,
@@ -48,6 +49,11 @@
                 "engineLogging": false,
                 "trace": false,
                 "traceResponse": false
+            },
+            "presentation": {
+                "hidden": false,
+                "group": "Build and Launch C++ Clang Project",
+                "order": 1
             }
         }
     ]

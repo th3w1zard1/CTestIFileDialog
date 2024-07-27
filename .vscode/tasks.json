@@ -9,7 +9,7 @@
                 "-fansi-escape-codes",
                 "-g",
                 "${workspaceFolder}\\IFileDialog.cpp",
-                "${workspaceFolder}\\RawWinAPI.cpp",
+                //"${workspaceFolder}\\RawWinAPI.cpp",
                 "${workspaceFolder}\\main.cpp",
                 "-o",
                 "${workspaceFolder}\\build\\debug\\main.exe",
