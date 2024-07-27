@@ -11,20 +11,24 @@
 // **
 // Toggle debugging tests
 //
-// Individual toggles
-//#define TOGGLE_IModalWindow
-#define TOGGLE_IShellItemArray
-#define TOGGLE_IShellItem
-#define TOGGLE_IShellItemFilter
-#define TOGGLE_IEnumShellItems
-//#define TOGGLE_IFileDialog
-//#define TOGGLE_IFileDialogEvents
-//#define TOGGLE_IFileOpenDialog
-//#define TOGGLE_IFileSaveDialog
-//
+// Individual toggles. Default implementation is all commented.
+// Uncommented - This literal file header you're in, will override that interface definition in the shobjidl.h
+// Commented - Default implementation. When implementing IFileDialog, most users just #include shobjidl.h and be done with it. That is what happens when you comment everything.
+#define __IModalWindow_FWD_DEFINED__
+#define __IShellItemArray_INTERFACE_DEFINED__
+#define __IShellItem_INTERFACE_DEFINED__
+#define __IShellItemFilter_FWD_DEFINED__
+#define __IEnumShellItems_FWD_DEFINED__
+#define __IFileDialog_FWD_DEFINED__ // requires __IModalWindow_FWD_DEFINED__ defined.
+#define __IFileDialogEvents_FWD_DEFINED__
+#define __IFileOpenDialog_FWD_DEFINED__ // requires __IFileDialog_FWD_DEFINED__ defined.
+#define __IFileSaveDialog_FWD_DEFINED__ // requires __IFileDialog_FWD_DEFINED__ defined.
 // Other Toggles
-//#define FORCE_MY_INTERFACE  // Force shobjidl to skip loading all of our custom interfaces, but include everything else.
-#define _USE_SHOBJIDL_  // Should we include shobjidl.h at all?
+//
+// Provided that the above defines are ALL uncommented, there is no functional difference when
+// commenting this next line vs uncommenting. This define is what controls whether shobjidl should be imported.
+// At this point after a bit of testing, I believe we have everything required from that file in here? Not sure, play around with it and find out.
+//#define __shobjidl_h__  // Should we include shobjidl.h at all? (commented=not included)
 // **
 // **
 
@@ -118,31 +122,29 @@
     virtual HRESULT STDMETHODCALLTYPE ApplyProperties(IShellItem* psi, IUnknown* pStore, HWND hwnd, IUnknown* pSink) = 0;
 
 // Toggle definitions for interface forward declaration
-#ifdef TOGGLE_IModalWindow
-#define __IModalWindow_FWD_DEFINED__
+#ifdef __IModalWindow_FWD_DEFINED__
 interface IModalWindow;  // Forward declaration of the interface
 #define __IModalWindow_INTERFACE_DEFINED__
 typedef interface IModalWindow IModalWindow;
 DEFINE_INTERFACE(IModalWindow, IUnknown, DEFINE_IModalWindow_METHODS)
-#endif // TOGGLE_IModalWindow
+#endif // __IModalWindow_FWD_DEFINED__
 
 #define __IShellItem_FWD_DEFINED__
 interface IShellItem;  // Forward declaration of the interface
 
-#ifdef TOGGLE_IShellItemArray
 #define __IShellItemArray_FWD_DEFINED__
 interface IShellItemArray;  // Forward declaration of the interface
-#define __IShellItemArray_INTERFACE_DEFINED__
+
+#ifdef __IShellItemArray_INTERFACE_DEFINED__
 typedef interface IShellItemArray IShellItemArray;
 DEFINE_INTERFACE(IShellItemArray, IUnknown, DEFINE_IShellItemArray_METHODS)
-#endif // TOGGLE_IShellItemArray
+#endif // __IShellItemArray_INTERFACE_DEFINED__
 
 
 
 typedef DWORD SICHINTF;
 #define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), IID_PPV_ARGS_Helper(ppType)
-#ifdef TOGGLE_IShellItem
-#define __IShellItem_INTERFACE_DEFINED__
+#ifdef __IShellItem_INTERFACE_DEFINED__
 typedef /* [v1_enum] */ 
 enum _SIGDN
     {
@@ -170,77 +172,24 @@ struct __declspec(uuid("43826d1e-e718-42ee-bc55-a1e261c37bfe")) IShellItem : pub
     DEFINE_IShellItem_METHODS
 };
 static const IID IID_IShellItem = {0x43826d1e, 0xe718, 0x42ee, {0xbc, 0x55, 0xa1, 0xe2, 0x61, 0xc3, 0x7b, 0xfe}};
-#endif // TOGGLE_IShellItem
+#endif // __IShellItem_INTERFACE_DEFINED__
 
-#ifdef TOGGLE_IShellItemFilter
-#define __IShellItemFilter_FWD_DEFINED__
+#ifdef __IShellItemFilter_FWD_DEFINED__
 #define __IShellItemFilter_INTERFACE_DEFINED__
 typedef interface IShellItemFilter IShellItemFilter;
 DEFINE_INTERFACE(IShellItemFilter, IUnknown, DEFINE_IShellItemFilter_METHODS)
-#endif // TOGGLE_IShellItemFilter
+#endif // __IShellItemFilter_FWD_DEFINED__
 
-#ifdef TOGGLE_IEnumShellItems
-#define __IEnumShellItems_FWD_DEFINED__
+#ifdef __IEnumShellItems_FWD_DEFINED__
 interface IEnumShellItems;  // Forward declaration of the interface
 #define __IEnumShellItems_INTERFACE_DEFINED__
 typedef interface IEnumShellItems IEnumShellItems;
 DEFINE_INTERFACE(IEnumShellItems, IUnknown, DEFINE_IEnumShellItems_METHODS)
-#endif // TOGGLE_IEnumShellItems
+#endif // __IEnumShellItems_FWD_DEFINED__
 
-#ifdef TOGGLE_IFileDialog
-#define __IFileDialog_FWD_DEFINED__
+#ifdef __IFileDialog_FWD_DEFINED__
 interface IFileDialog;  // Forward declaration of the interface
-#define __IFileDialog_INTERFACE_DEFINED__
-typedef interface IFileDialog IFileDialog;
-DEFINE_INTERFACE(IFileDialog, IModalWindow, DEFINE_IFileDialog_METHODS)
-#endif // TOGGLE_IFileDialog
 
-#ifdef TOGGLE_IFileDialogEvents
-#define __IFileDialogEvents_FWD_DEFINED__
-interface IFileDialogEvents;  // Forward declaration of the interface
-#define __IFileDialogEvents_INTERFACE_DEFINED__
-typedef interface IFileDialogEvents IFileDialogEvents;
-DEFINE_INTERFACE(IFileDialogEvents, IUnknown, DEFINE_IFileDialogEvents_METHODS)
-#endif // TOGGLE_IFileDialogEvents
-
-#ifdef TOGGLE_IFileOpenDialog
-#define __IFileOpenDialog_FWD_DEFINED__
-interface IFileOpenDialog;  // Forward declaration of the interface
-#define __IFileOpenDialog_INTERFACE_DEFINED__
-typedef interface IFileOpenDialog IFileOpenDialog;
-DEFINE_INTERFACE(IFileOpenDialog, IFileDialog, DEFINE_IFileOpenDialog_METHODS)
-#endif // TOGGLE_IFileOpenDialog
-
-#ifdef TOGGLE_IFileSaveDialog
-#define __IFileSaveDialog_FWD_DEFINED__
-interface IFileSaveDialog;  // Forward declaration of the interface
-#define __IFileSaveDialog_INTERFACE_DEFINED__
-typedef interface IFileSaveDialog IFileSaveDialog;
-DEFINE_INTERFACE(IFileSaveDialog, IFileDialog, DEFINE_IFileSaveDialog_METHODS)
-#endif // TOGGLE_IFileSaveDialog
-
-#if defined(_USE_SHOBJIDL_)
-#include <ShObjIdl.h>
-#endif // _USE_SHOBJIDL_
-
-// COM constants
-#ifndef __shobjidl_h__
-
-static const IID IID_IFileOpenDialog = {0xd57c7288, 0xd4ad, 0x4768, {0xbe, 0x02, 0x9d, 0x96, 0x95, 0x32, 0xd9, 0x60}};
-static const IID IID_IFileSaveDialog = {0x84bccd23, 0x5fde, 0x4cdb, {0xae, 0xa4, 0xaf, 0x64, 0xb8, 0x3d, 0x78, 0xab}};
-static const IID IID_IShellItem = {0x43826d1e, 0xe718, 0x42ee, {0xbc, 0x55, 0xa1, 0xe2, 0x61, 0xc3, 0x7b, 0xfe}};
-static const IID IID_IShellItemArray = {0xb63ea76d, 0x1f85, 0x456f, {0xa1, 0x9c, 0x48, 0x15, 0x9e, 0xfa, 0x85, 0x8b}};
-static const IID IID_IFileDialogEvents = {0x973510db, 0x7d7f, 0x452b, {0x89, 0x75, 0x74, 0xa8, 0x58, 0x28, 0xd3, 0x54}};
-static const CLSID CLSID_FileOpenDialog = {0xdc1c5a9c, 0xe88a, 0x4dde, {0xa5, 0xa1, 0x60, 0xf8, 0x2a, 0x20, 0xae, 0xf7}};
-static const CLSID CLSID_FileSaveDialog = {0xc0b4e2f3, 0xba21, 0x4773, {0x8d, 0xba, 0x33, 0x5e, 0xc9, 0x46, 0xeb, 0x8b}};
-
-enum FDE_SHAREVIOLATION_RESPONSE : DWORD {
-    FDESVR_DEFAULT = 0x00000000,
-    FDESVR_ACCEPT = 0x00000001,
-    FDESVR_REFUSE = 0x00000002
-};
-
-typedef FDE_SHAREVIOLATION_RESPONSE FDE_OVERWRITE_RESPONSE;
 
 #define FOS_OVERWRITEPROMPT 0x2
 #define FOS_STRICTFILETYPES 0x4
@@ -263,6 +212,52 @@ typedef FDE_SHAREVIOLATION_RESPONSE FDE_OVERWRITE_RESPONSE;
 #define FOS_FORCESHOWHIDDEN 0x10000000
 #define FOS_DEFAULTNOMINIMODE 0x20000000
 #define FOS_FORCEPREVIEWPANEON 0x40000000
+#define __IFileDialog_INTERFACE_DEFINED__
+typedef interface IFileDialog IFileDialog;
+DEFINE_INTERFACE(IFileDialog, IModalWindow, DEFINE_IFileDialog_METHODS)
+#endif // __IFileDialog_FWD_DEFINED__
+
+#ifdef __IFileDialogEvents_FWD_DEFINED__
+interface IFileDialogEvents;  // Forward declaration of the interface
+static const IID IID_IFileDialogEvents = {0x973510db, 0x7d7f, 0x452b, {0x89, 0x75, 0x74, 0xa8, 0x58, 0x28, 0xd3, 0x54}};
+#define __IFileDialogEvents_INTERFACE_DEFINED__
+typedef interface IFileDialogEvents IFileDialogEvents;
+DEFINE_INTERFACE(IFileDialogEvents, IUnknown, DEFINE_IFileDialogEvents_METHODS)
+#endif // __IFileDialogEvents_FWD_DEFINED__
+
+#ifdef __IFileOpenDialog_FWD_DEFINED__
+interface IFileOpenDialog;  // Forward declaration of the interface
+static const IID IID_IFileOpenDialog = {0xd57c7288, 0xd4ad, 0x4768, {0xbe, 0x02, 0x9d, 0x96, 0x95, 0x32, 0xd9, 0x60}};
+#define __IFileOpenDialog_INTERFACE_DEFINED__
+typedef interface IFileOpenDialog IFileOpenDialog;
+DEFINE_INTERFACE(IFileOpenDialog, IFileDialog, DEFINE_IFileOpenDialog_METHODS)
+#endif // __IFileOpenDialog_FWD_DEFINED__
+
+#ifdef __IFileSaveDialog_FWD_DEFINED__
+interface IFileSaveDialog;  // Forward declaration of the interface
+static const IID IID_IFileSaveDialog = {0x84bccd23, 0x5fde, 0x4cdb, {0xae, 0xa4, 0xaf, 0x64, 0xb8, 0x3d, 0x78, 0xab}};
+#define __IFileSaveDialog_INTERFACE_DEFINED__
+typedef interface IFileSaveDialog IFileSaveDialog;
+DEFINE_INTERFACE(IFileSaveDialog, IFileDialog, DEFINE_IFileSaveDialog_METHODS)
+#endif // __IFileSaveDialog_FWD_DEFINED__
+
+#if !defined(__shobjidl_h__)
+#include <ShObjIdl.h>
+#else // __shobjidl_h__
+
+// Other COM constants
+static const IID IID_IShellItemArray = {0xb63ea76d, 0x1f85, 0x456f, {0xa1, 0x9c, 0x48, 0x15, 0x9e, 0xfa, 0x85, 0x8b}};
+static const CLSID CLSID_FileOpenDialog = {0xdc1c5a9c, 0xe88a, 0x4dde, {0xa5, 0xa1, 0x60, 0xf8, 0x2a, 0x20, 0xae, 0xf7}};
+static const CLSID CLSID_FileSaveDialog = {0xc0b4e2f3, 0xba21, 0x4773, {0x8d, 0xba, 0x33, 0x5e, 0xc9, 0x46, 0xeb, 0x8b}};
+
+enum FDE_SHAREVIOLATION_RESPONSE : DWORD {
+    FDESVR_DEFAULT = 0x00000000,
+    FDESVR_ACCEPT = 0x00000001,
+    FDESVR_REFUSE = 0x00000002
+};
+
+typedef FDE_SHAREVIOLATION_RESPONSE FDE_OVERWRITE_RESPONSE;
+
 typedef int GETPROPERTYSTOREFLAGS;
 #define GPS_DEFAULT 0x00000000
 #define GPS_HANDLERPROPERTIESONLY 0x00000001
@@ -282,18 +277,6 @@ typedef int GETPROPERTYSTOREFLAGS;
 #define BIF_BROWSEFORPRINTER 0x2000
 #define BIF_BROWSEINCLUDEFILES 0x4000
 #define BIF_SHAREABLE 0x8000
-
-// Enum definitions and other constants
-enum SIGDN : DWORD {
-    SIGDN_NORMALDISPLAY = 0x00000000,
-    SIGDN_PARENTRELATIVEPARSING = 0x80018001,
-    SIGDN_PARENTRELATIVEFORADDRESSBAR = 0x8001c001,
-    SIGDN_DESKTOPABSOLUTEPARSING = 0x80028000,
-    SIGDN_PARENTRELATIVEEDITING = 0x80031001,
-    SIGDN_DESKTOPABSOLUTEEDITING = 0x8004c000,
-    SIGDN_FILESYSPATH = 0x80058000,
-    SIGDN_URL = 0x80068000
-};
 
 #endif // __shobjidl_h__
 
