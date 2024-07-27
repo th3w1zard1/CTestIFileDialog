@@ -48,14 +48,14 @@ void FreeCOMFunctionPointers(COMFunctionPointers& comFuncPtrs) {
     }
 }
 
-class FileDialogEventHandler : public MyIFileDialogEvents {
+class FileDialogEventHandler : public IFileDialogEvents {
 public:
     FileDialogEventHandler() : refCount(1) {}
 
     // IUnknown methods
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppv) {
         if (riid == IID_IUnknown || riid == IID_IFileDialogEvents) {
-            *ppv = static_cast<MyIFileDialogEvents*>(this);
+            *ppv = static_cast<IFileDialogEvents*>(this);
             AddRef();
             return S_OK;
         }
@@ -75,14 +75,14 @@ public:
         return count;
     }
 
-    // MyIFileDialogEvents methods
-    HRESULT STDMETHODCALLTYPE OnFileOk(MyIFileDialog *pfd) { return S_OK; }
-    HRESULT STDMETHODCALLTYPE OnFolderChanging(MyIFileDialog *pfd, MyIShellItem *psiFolder) { return S_OK; }
-    HRESULT STDMETHODCALLTYPE OnFolderChange(MyIFileDialog *pfd) { return S_OK; }
-    HRESULT STDMETHODCALLTYPE OnSelectionChange(MyIFileDialog *pfd) { return S_OK; }
-    HRESULT STDMETHODCALLTYPE OnShareViolation(MyIFileDialog *pfd, MyIShellItem *psi, FDE_SHAREVIOLATION_RESPONSE *pResponse) { return S_OK; }
-    HRESULT STDMETHODCALLTYPE OnTypeChange(MyIFileDialog *pfd) { return S_OK; }
-    HRESULT STDMETHODCALLTYPE OnOverwrite(MyIFileDialog *pfd, MyIShellItem *psi, FDE_OVERWRITE_RESPONSE *pResponse) { return S_OK; }
+    // IFileDialogEvents methods
+    HRESULT STDMETHODCALLTYPE OnFileOk(IFileDialog *pfd) { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnFolderChanging(IFileDialog *pfd, IShellItem *psiFolder) { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnFolderChange(IFileDialog *pfd) { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnSelectionChange(IFileDialog *pfd) { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnShareViolation(IFileDialog *pfd, IShellItem *psi, FDE_SHAREVIOLATION_RESPONSE *pResponse) { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnTypeChange(IFileDialog *pfd) { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnOverwrite(IFileDialog *pfd, IShellItem *psi, FDE_OVERWRITE_RESPONSE *pResponse) { return S_OK; }
 
 protected:
     virtual ~FileDialogEventHandler() = default;
@@ -91,7 +91,7 @@ private:
     LONG refCount;
 };
 
-void createFileDialog(COMFunctionPointers& comFuncs, MyIFileDialog** ppFileDialog, bool isSaveDialog) {
+void createFileDialog(COMFunctionPointers& comFuncs, IFileDialog** ppFileDialog, bool isSaveDialog) {
     HRESULT hr;
     if (isSaveDialog) {
         hr = comFuncs.pCoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileSaveDialog, reinterpret_cast<void**>(ppFileDialog));
@@ -101,14 +101,14 @@ void createFileDialog(COMFunctionPointers& comFuncs, MyIFileDialog** ppFileDialo
     COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to create file dialog", return);
 }
 
-void showDialog(COMFunctionPointers& comFuncs, MyIFileDialog* pFileOpenDialog, HWND hwndOwner) {
+void showDialog(COMFunctionPointers& comFuncs, IFileDialog* pFileOpenDialog, HWND hwndOwner) {
     HRESULT hr = pFileOpenDialog->Show(hwndOwner);
     COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to show the file open dialog", return);
 }
 
-std::vector<std::wstring> getFileDialogResults(COMFunctionPointers& comFuncs, MyIFileOpenDialog* pFileOpenDialog) {
+std::vector<std::wstring> getFileDialogResults(COMFunctionPointers& comFuncs, IFileOpenDialog* pFileOpenDialog) {
     std::vector<std::wstring> results;
-    MyIShellItemArray* pResultsArray;
+    IShellItemArray* pResultsArray;
     HRESULT hr = pFileOpenDialog->GetResults(&pResultsArray);
     if (FAILED(hr)) {
         std::wcerr << L"Failed to get dialog results" << std::endl;
@@ -126,7 +126,7 @@ std::vector<std::wstring> getFileDialogResults(COMFunctionPointers& comFuncs, My
     }
 
     for (DWORD i = 0; i < itemCount; ++i) {
-        MyIShellItem* pItem;
+        IShellItem* pItem;
         hr = pResultsArray->GetItemAt(i, &pItem);
         if (FAILED(hr)) {
             std::wcerr << L"Failed to get item" << std::endl;
@@ -150,7 +150,7 @@ std::vector<std::wstring> getFileDialogResults(COMFunctionPointers& comFuncs, My
     return results;
 }
 
-void setDialogAttributes(MyIFileDialog* pFileDialog, const std::wstring& title, const std::wstring& okButtonLabel, const std::wstring& fileNameLabel) {
+void setDialogAttributes(IFileDialog* pFileDialog, const std::wstring& title, const std::wstring& okButtonLabel, const std::wstring& fileNameLabel) {
     if (!title.empty()) {
         pFileDialog->SetTitle(title.c_str());
     }
@@ -165,14 +165,14 @@ void setDialogAttributes(MyIFileDialog* pFileDialog, const std::wstring& title, 
 }
 
 // Configure the file dialog
-void configureFileDialog(COMFunctionPointers& comFuncs, MyIFileDialog* pFileDialog, const std::vector<COMDLG_FILTERSPEC>& filters, const std::wstring& defaultFolder, DWORD options, bool forceFileSystem, bool allowMultiselect) {
+void configureFileDialog(COMFunctionPointers& comFuncs, IFileDialog* pFileDialog, const std::vector<COMDLG_FILTERSPEC>& filters, const std::wstring& defaultFolder, DWORD options, bool forceFileSystem, bool allowMultiselect) {
     if (!filters.empty()) {
         HRESULT hr = pFileDialog->SetFileTypes(static_cast<UINT>(filters.size()), filters.data());
         COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to set file types", return);
     }
 
     if (!defaultFolder.empty()) {
-        MyIShellItem* pFolder;
+        IShellItem* pFolder;
         HRESULT hr = comFuncs.pSHCreateItemFromParsingName(defaultFolder.c_str(), NULL, IID_IShellItem, reinterpret_cast<void**>(&pFolder));
         COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to create shell item from default folder", return);
         hr = pFileDialog->SetFolder(pFolder);
@@ -201,8 +201,8 @@ void configureFileDialog(COMFunctionPointers& comFuncs, MyIFileDialog* pFileDial
 }*/
 
 // Helper function to create a shell item from a path
-MyIShellItem* createShellItem(COMFunctionPointers& comFuncs, const std::wstring& path) {
-    MyIShellItem* pItem = nullptr;
+IShellItem* createShellItem(COMFunctionPointers& comFuncs, const std::wstring& path) {
+    IShellItem* pItem = nullptr;
     HRESULT hr = comFuncs.pSHCreateItemFromParsingName(path.c_str(), NULL, IID_IShellItem, reinterpret_cast<void**>(&pItem));
     if (FAILED(hr)) {
         std::wcerr << L"Failed to create shell item from path: " << path << std::endl;
@@ -211,7 +211,7 @@ MyIShellItem* createShellItem(COMFunctionPointers& comFuncs, const std::wstring&
 }
 
 // Helper function to get file paths from IShellItemArray
-std::vector<std::wstring> getFilePathsFromShellItemArray(MyIShellItemArray* pItemArray) {
+std::vector<std::wstring> getFilePathsFromShellItemArray(IShellItemArray* pItemArray) {
     std::vector<std::wstring> filePaths;
     DWORD itemCount = 0;
     HRESULT hr = pItemArray->GetCount(&itemCount);
@@ -223,7 +223,7 @@ std::vector<std::wstring> getFilePathsFromShellItemArray(MyIShellItemArray* pIte
     COMFunctionPointers comFuncs = LoadCOMFunctionPointers();
 
     for (DWORD i = 0; i < itemCount; ++i) {
-        MyIShellItem* pItem = nullptr;
+        IShellItem* pItem = nullptr;
         //hr = pItemArray->GetItemAt(i, reinterpret_cast<IUnknown**>(&pItem));
         hr = pItemArray->GetItemAt(i, &pItem);
         if (FAILED(hr)) {

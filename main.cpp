@@ -206,7 +206,7 @@ int main() {
     int choice = getUserMenuChoice(1, 3, true);
     bool isSaveDialog = (choice == 2);
 
-    MyIFileDialog* pFileDialog = NULL;
+    IFileDialog* pFileDialog = NULL;
     createFileDialog(comFuncs, &pFileDialog, isSaveDialog);
 
     std::wstring title = getUserInputStr(L"Enter dialog title: ", L"My C++ IFileOpenDialog");
@@ -231,7 +231,7 @@ int main() {
     showDialog(comFuncs, pFileDialog);
 
     if (!isSaveDialog) {
-        MyIFileOpenDialog* pFileOpenDialog = static_cast<MyIFileOpenDialog*>(pFileDialog);
+        IFileOpenDialog* pFileOpenDialog = static_cast<IFileOpenDialog*>(pFileDialog);
         std::vector<std::wstring> results = getFileDialogResults(comFuncs, pFileOpenDialog);
         for (const auto& filePath : results) {
             std::wcout << L"Selected file: " << filePath << std::endl;
