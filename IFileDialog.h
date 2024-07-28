@@ -4,8 +4,10 @@
 #include <vector>
 #include <string>
 #include <cstdint>  // For fixed-width integer types
-//#include "RawWinAPI.h" // experimental alternative to IUnknown's definition and similar.
-#include <shlwapi.h>  // For STDMETHODCALLTYPE
+
+#ifndef interface
+#define interface struct
+#endif
 
 // **
 // **
@@ -15,7 +17,7 @@
 // Uncommented - This literal file header you're in, will override that interface definition in the shobjidl.h
 // Commented - Default implementation. When implementing IFileDialog, most users just #include shobjidl.h and be done with it. That is what happens when you comment everything.
 #define __IModalWindow_FWD_DEFINED__
-#define __IShellItemArray_INTERFACE_DEFINED__
+//#define __IShellItemArray_INTERFACE_DEFINED__  // IShellItemArray. The root of all evil. Took ages to track the GetCount access violation here.
 #define __IShellItem_INTERFACE_DEFINED__
 #define __IShellItemFilter_FWD_DEFINED__
 #define __IEnumShellItems_FWD_DEFINED__
@@ -29,8 +31,22 @@
 // commenting this next line vs uncommenting. This define is what controls whether shobjidl should be imported.
 // At this point after a bit of testing, I believe we have everything required from that file in here? Not sure, play around with it and find out.
 //#define __shobjidl_h__  // Should we include shobjidl.h at all? (commented=not included)
+//
+// shlwapi. Defines IUnknown, interface, DWORD, and a few others.
+// The toggle is not currently functional.
+//#define _INC_SHLWAPI
 // **
 // **
+#if !defined(_INC_SHLWAPI)
+#include <shlwapi.h>
+
+#else
+
+#define STDMETHODCALLTYPE __stdcall
+#define interface struct
+// TODO: IUnknown, DWORD, etc
+
+#endif // _INC_SHLWAPI
 
 // Macro to simplify the interface definitions
 #define DEFINE_INTERFACE(iface, base, methods) \
