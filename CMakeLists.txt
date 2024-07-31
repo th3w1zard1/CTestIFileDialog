@@ -1,13 +1,21 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.15)
 
-project(CTestIFileDialog VERSION 0.1.0 LANGUAGES C CXX)
+project(CIFileDialogTester)
 
-# Include VCPKG toolchain
-if (DEFINED ENV{VCPKG_ROOT} AND EXISTS "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+# Set the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Add the executable
+file(GLOB_RECURSE SOURCES "*.cpp")
+add_executable(CIFileDialogTester ${SOURCES})
+
+# Include vcpkg
+if(CMAKE_TOOLCHAIN_FILE)
+  include(${CMAKE_TOOLCHAIN_FILE})
 endif()
 
-add_executable(CIFileDialogTester.exe IFileDialog.cpp main.cpp ProjUtil.cpp ProjWinUtils.cpp)
+# Find and link dependencies
+find_package(Advapi32 REQUIRED)
 
-find_package(CLI11 CONFIG REQUIRED)
-target_link_libraries(CIFileDialogTester.exe PRIVATE CLI11::CLI11)
+target_link_libraries(CIFileDialogTester PRIVATE Advapi32::Advapi32)

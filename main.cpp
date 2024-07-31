@@ -237,7 +237,7 @@ int main() {
             }
 
             IFileDialog* pFileDialog = nullptr;
-            createFileDialog(comFuncs, &pFileDialog, isSaveDialog);
+            createFileDialog(comFuncs, &pFileDialog, dialogType);
 
             if (pFileDialog == nullptr) {
                 throw std::runtime_error("Failed to create file dialog.");

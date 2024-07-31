@@ -35,7 +35,7 @@
             "problemMatcher": [
                 "$msCompile"
             ],
-            "type": "cppbuild"
+            "type": "cppbuild",
         },
         {
             "args": [

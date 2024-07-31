@@ -2,7 +2,11 @@
 #define WINUTILS_H
 
 #include <string>
+#if !defined(__unknwn_h__)
 #include <unknwn.h>  // For IUnknown
+#else
+#include "Unknwn.h" // Our custom .h
+#endif // __unknwn_h__
 
 // Function pointer types for the dynamically loaded functions
 typedef HRESULT (STDMETHODCALLTYPE *PFN_CoInitialize)(LPVOID);

@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <string>
-#include "ProjWinUtils.h"
 
 // **
 // **
@@ -26,7 +25,10 @@
 // Provided that the above defines are ALL uncommented, there is no functional difference when
 // commenting this next line vs uncommenting. This define is what controls whether shobjidl should be imported.
 // At this point after a bit of testing, I believe we have everything required from that file in here? Not sure, play around with it and find out.
-#define __shobjidl_h__  // Should we include shobjidl.h at all? (commented=not included)
+#define __shobjidl_h__  // Should we include shobjidl.h at all? (commented=included(standard))
+//
+// unknwn.h. Defines IUnknown and its deps
+#define __unknwn_h__ // Manually define IUnknown and its deps? (commented=included(standard))
 //
 // shlwapi. Defines IUnknown, interface, DWORD, and a few others.
 // The toggle is not currently functional.
@@ -46,6 +48,8 @@
 //#define interface struct
 
 #endif // _INC_SHLWAPI
+
+#include "ProjWinUtils.h"
 
 // Macro to simplify the interface definitions
 #define DEFINE_INTERFACE(iface, base, methods) \
@@ -116,14 +120,24 @@
     virtual HRESULT STDMETHODCALLTYPE ClearClientData() = 0; \
     virtual HRESULT STDMETHODCALLTYPE SetFilter(IShellItemFilter *pFilter) = 0;
 
+#if defined(__shobjidl_h__)
+enum FDE_SHAREVIOLATION_RESPONSE : DWORD {
+    FDESVR_DEFAULT = 0x00000000,
+    FDESVR_ACCEPT = 0x00000001,
+    FDESVR_REFUSE = 0x00000002
+};
+
+typedef FDE_SHAREVIOLATION_RESPONSE FDE_OVERWRITE_RESPONSE;
+#endif
+
 #define DEFINE_IFileDialogEvents_METHODS \
     virtual HRESULT STDMETHODCALLTYPE OnFileOk(IFileDialog *pfd) = 0; \
     virtual HRESULT STDMETHODCALLTYPE OnFolderChanging(IFileDialog *pfd, IShellItem *psiFolder) = 0; \
     virtual HRESULT STDMETHODCALLTYPE OnFolderChange(IFileDialog *pfd) = 0; \
     virtual HRESULT STDMETHODCALLTYPE OnSelectionChange(IFileDialog *pfd) = 0; \
-    virtual HRESULT STDMETHODCALLTYPE OnShareViolation(IFileDialog *pfd, IShellItem *psi, int *pResponse) = 0; \
+    virtual HRESULT STDMETHODCALLTYPE OnShareViolation(IFileDialog *pfd, IShellItem *psi, FDE_SHAREVIOLATION_RESPONSE *pResponse) = 0; \
     virtual HRESULT STDMETHODCALLTYPE OnTypeChange(IFileDialog *pfd) = 0; \
-    virtual HRESULT STDMETHODCALLTYPE OnOverwrite(IFileDialog *pfd, IShellItem *psi, int *pResponse) = 0;
+    virtual HRESULT STDMETHODCALLTYPE OnOverwrite(IFileDialog *pfd, IShellItem *psi, FDE_OVERWRITE_RESPONSE *pResponse) = 0;
 
 #define DEFINE_IFileOpenDialog_METHODS \
     virtual HRESULT STDMETHODCALLTYPE GetResults(IShellItemArray **ppenum) = 0; \
@@ -266,14 +280,6 @@ static const IID IID_IShellItemArray = {0xb63ea76d, 0x1f85, 0x456f, {0xa1, 0x9c,
 static const CLSID CLSID_FileDialog = {0x3D9C8F03, 0x50D4, 0x4E40, {0xBB, 0x11, 0x70, 0xE7, 0x4D, 0x3F, 0x10, 0xF3}};
 static const CLSID CLSID_FileOpenDialog = {0xdc1c5a9c, 0xe88a, 0x4dde, {0xa5, 0xa1, 0x60, 0xf8, 0x2a, 0x20, 0xae, 0xf7}};
 static const CLSID CLSID_FileSaveDialog = {0xc0b4e2f3, 0xba21, 0x4773, {0x8d, 0xba, 0x33, 0x5e, 0xc9, 0x46, 0xeb, 0x8b}};
-
-enum FDE_SHAREVIOLATION_RESPONSE : DWORD {
-    FDESVR_DEFAULT = 0x00000000,
-    FDESVR_ACCEPT = 0x00000001,
-    FDESVR_REFUSE = 0x00000002
-};
-
-typedef FDE_SHAREVIOLATION_RESPONSE FDE_OVERWRITE_RESPONSE;
 
 typedef int GETPROPERTYSTOREFLAGS;
 typedef ULONG SFGAOF;

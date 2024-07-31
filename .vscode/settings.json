@@ -1,4 +1,7 @@
 {
+    "cmake.configureSettings": {
+      "CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/.venv/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    },
     "files.associations": {
         "xstring": "cpp",
         "cstdint": "cpp",
@@ -50,7 +53,29 @@
         "xhash": "cpp",
         "random": "cpp",
         "algorithm": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "array": "cpp",
+        "charconv": "cpp",
+        "chrono": "cpp",
+        "codecvt": "cpp",
+        "forward_list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "filesystem": "cpp",
+        "format": "cpp",
+        "fstream": "cpp",
+        "iomanip": "cpp",
+        "locale": "cpp",
+        "mutex": "cpp",
+        "numeric": "cpp",
+        "optional": "cpp",
+        "ratio": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp",
+        "xlocbuf": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xloctime": "cpp",
+        "xtree": "cpp"
     },
-    "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }
