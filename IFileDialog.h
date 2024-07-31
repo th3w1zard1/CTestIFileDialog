@@ -3,11 +3,7 @@
 
 #include <vector>
 #include <string>
-#include <cstdint>  // For fixed-width integer types
-
-#ifndef interface
-#define interface struct
-#endif
+#include "ProjWinUtils.h"
 
 // **
 // **
@@ -34,7 +30,7 @@
 //
 // shlwapi. Defines IUnknown, interface, DWORD, and a few others.
 // The toggle is not currently functional.
-//#define _INC_SHLWAPI
+#define _INC_SHLWAPI  // Should we include shlwapi.h at all? (commented=not included)
 // **
 // **
 #if !defined(_INC_SHLWAPI)
@@ -42,9 +38,12 @@
 
 #else
 
-#define STDMETHODCALLTYPE __stdcall
+#ifndef interface
 #define interface struct
+#endif
+
 // TODO: IUnknown, DWORD, etc
+//#define interface struct
 
 #endif // _INC_SHLWAPI
 
@@ -161,7 +160,7 @@ DEFINE_INTERFACE(IShellItemArray, IUnknown, DEFINE_IShellItemArray_METHODS)
 typedef DWORD SICHINTF;
 #define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), IID_PPV_ARGS_Helper(ppType)
 #ifdef __IShellItem_INTERFACE_DEFINED__
-typedef /* [v1_enum] */ 
+typedef /* [v1_enum] */
 enum _SIGDN
     {
         SIGDN_NORMALDISPLAY	= 0,
@@ -175,7 +174,7 @@ enum _SIGDN
         SIGDN_PARENTRELATIVE	= ( int  )0x80080001,
         SIGDN_PARENTRELATIVEFORUI	= ( int  )0x80094001
     } 	SIGDN;
-/* [v1_enum] */ 
+/* [v1_enum] */
 enum _SICHINTF
     {
         SICHINT_DISPLAY	= 0,
@@ -184,7 +183,7 @@ enum _SICHINTF
         SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL	= 0x20000000
     } ;
 typedef interface IShellItem IShellItem;
-struct __declspec(uuid("43826d1e-e718-42ee-bc55-a1e261c37bfe")) IShellItem : public IUnknown {
+struct __declspec(uuid("43826D1E-E718-42EE-BC55-A1E261C37BFE")) IShellItem : public IUnknown {
     DEFINE_IShellItem_METHODS
 };
 static const IID IID_IShellItem = {0x43826d1e, 0xe718, 0x42ee, {0xbc, 0x55, 0xa1, 0xe2, 0x61, 0xc3, 0x7b, 0xfe}};
@@ -303,34 +302,11 @@ typedef HRESULT (STDMETHODCALLTYPE *PFN_CoCreateInstance)(REFCLSID, LPUNKNOWN, D
 typedef HRESULT (STDMETHODCALLTYPE *PFN_SHCreateItemFromParsingName)(LPCWSTR, LPVOID, REFIID, void**);
 typedef void (STDMETHODCALLTYPE *PFN_CoTaskMemFree)(LPVOID);
 
-// Structure to hold the function pointers and module handles
-struct COMFunctionPointers {
-    HMODULE hOle32;
-    HMODULE hShell32;
-    PFN_CoCreateInstance pCoCreateInstance;
-    PFN_CoUninitialize pCoUninitialize;
-    PFN_CoTaskMemFree pCoTaskMemFree;
-    PFN_CoInitialize pCoInitialize;
-    PFN_SHCreateItemFromParsingName pSHCreateItemFromParsingName;
-};
-
 // Function declarations
-COMFunctionPointers LoadCOMFunctionPointers();
-void FreeCOMFunctionPointers(COMFunctionPointers& comFuncPtrs);
-LPCWSTR string_to_LPCWSTR(const std::wstring& s);  // Helper to convert std::wstring to LPCWSTR
-std::wstring LPCWSTR_to_string(LPCWSTR s);  // Helper to convert LPCWSTR to std::wstring
-
-// Function pointer types for the dynamically loaded functions
-typedef HRESULT (STDMETHODCALLTYPE *PFN_CoInitialize)(LPVOID);
-typedef void (STDMETHODCALLTYPE *PFN_CoUninitialize)();
-typedef HRESULT (STDMETHODCALLTYPE *PFN_CoCreateInstance)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID*);
-typedef HRESULT (STDMETHODCALLTYPE *PFN_SHCreateItemFromParsingName)(LPCWSTR, LPVOID, REFIID, void**);
-typedef void (STDMETHODCALLTYPE *PFN_CoTaskMemFree)(LPVOID);
-
-// Function declarations
-void FreeCOMFunctionPointers(COMFunctionPointers& comFuncPtrs);
 void createFileDialog(COMFunctionPointers& comFuncs, IFileDialog** ppFileDialog, bool isSaveDialog);
 void showDialog(COMFunctionPointers& comFuncs, IFileDialog* pFileOpenDialog, HWND hwndOwner = NULL);
+IShellItem* createShellItem(COMFunctionPointers& comFuncs, const std::wstring& path);
+std::vector<std::wstring> getFilePathsFromShellItemArray(IShellItemArray* pItemArray);
 std::vector<std::wstring> getFileDialogResults(COMFunctionPointers& comFuncs, IFileOpenDialog* pFileOpenDialog);
 void configureFileDialog(COMFunctionPointers& comFuncs, IFileDialog* pFileDialog, const std::vector<COMDLG_FILTERSPEC>& filters, const std::wstring& defaultFolder, DWORD options, bool forceFileSystem = false, bool allowMultiselect = false);
 

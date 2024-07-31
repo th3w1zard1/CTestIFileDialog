@@ -1,0 +1,7 @@
+{
+    "name": "CTestIFileDialog",
+    "version": "0.0.1",
+    "dependencies": [
+      "cli11"
+    ]
+  }

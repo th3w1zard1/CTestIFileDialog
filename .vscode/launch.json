@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C/C++: MinGW build and debug IFileDialog Console Tester",
+            "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\build\\debug\\main.exe",
+            "program": "${workspaceFolder}\\dist\\CIFileDialogTester.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -20,7 +20,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "C/C++: clang++.exe build IFileDialog console test",
+            "preLaunchTask": "C/C++: MinGW.exe build IFileDialog Console Tester", // todo
             "logging": {
                 "exceptions": true,
                 "moduleLoad": true,
@@ -29,18 +29,24 @@
                 "trace": false,
                 "traceResponse": false
             },
+            "presentation": {
+                "hidden": false,
+                "group": "MinGW",
+                "order": 1
+            }
         },
         {
             "name": "C/C++: clang++.exe build and debug IFileDialog Console Tester",
-            "type": "cppvsdbg",
+            "type":"cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\build\\debug\\main.exe",
+            "program": "${workspaceFolder}\\dist\\CIFileDialogTester.exe",
             "args": [],
             "stopAtEntry": false,
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": true,
+            "symbolSearchPath": ";C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\<version>\\lib\\x64;C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\<version>\\bin\\x64",
             "preLaunchTask": "C/C++: clang++.exe build IFileDialog Console Tester",
             "logging": {
                 "exceptions": true,
@@ -52,9 +58,36 @@
             },
             "presentation": {
                 "hidden": false,
-                "group": "Build and Launch C++ Clang Project",
+                "group": "clang++.exe",
                 "order": 1
             }
-        }
+        },
+        {
+            "name": "C/C++: cl.exe build and debug IFileDialog Console Tester",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\dist\\CIFileDialogTester.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "symbolSearchPath": ";C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\<version>\\lib\\x64;C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\<version>\\bin\\x64",
+            "preLaunchTask": "C/C++: cl.exe build IFileDialog Console Tester",
+            "logging": {
+                "exceptions": true,
+                "moduleLoad": true,
+                "programOutput": true,
+                "engineLogging": false,
+                "trace": false,
+                "traceResponse": false
+            },
+            "presentation": {
+                "hidden": false,
+                "group": "MSVC",
+                "order": 1
+            }
+        },
     ]
 }

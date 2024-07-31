@@ -1,52 +1,8 @@
+#include "IFileDialog.h"
+#include "ProjWinUtils.h"
 #include <iostream>
 #include <vector>
 #include <string>
-#include <cstdint>  // For fixed-width integer types
-#include <limits>
-//#include <shlobj.h>  // defines the interfaces we already have defined here, uncomment for testing purposes
-//#include <shlwapi.h>
-#include <sstream>  // Include the <sstream> header for std::wstringstream
-#include "IFileDialog.h"
-
-
-// Helper to convert std::wstring to LPCWSTR
-LPCWSTR string_to_LPCWSTR(const std::wstring& s) {
-    return s.c_str();
-}
-
-// Helper to convert LPCWSTR to std::wstring
-std::wstring LPCWSTR_to_string(LPCWSTR s) {
-    return std::wstring(s);
-}
-
-
-// Load COM function pointers
-COMFunctionPointers LoadCOMFunctionPointers() {
-    COMFunctionPointers comFuncPtrs = {0};
-
-    comFuncPtrs.hOle32 = LoadLibraryW(L"ole32.dll");
-    comFuncPtrs.hShell32 = LoadLibraryW(L"shell32.dll");
-
-    if (comFuncPtrs.hOle32) {
-        comFuncPtrs.pCoCreateInstance = (PFN_CoCreateInstance)GetProcAddress(comFuncPtrs.hOle32, "CoCreateInstance");
-        comFuncPtrs.pCoUninitialize = (PFN_CoUninitialize)GetProcAddress(comFuncPtrs.hOle32, "CoUninitialize");
-        comFuncPtrs.pCoTaskMemFree = (PFN_CoTaskMemFree)GetProcAddress(comFuncPtrs.hOle32, "CoTaskMemFree");
-        comFuncPtrs.pCoInitialize = (PFN_CoInitialize)GetProcAddress(comFuncPtrs.hOle32, "CoInitialize");
-    }
-
-    if (comFuncPtrs.hShell32) {
-        comFuncPtrs.pSHCreateItemFromParsingName = (PFN_SHCreateItemFromParsingName)GetProcAddress(comFuncPtrs.hShell32, "SHCreateItemFromParsingName");
-    }
-
-    return comFuncPtrs;
-}
-
-// Free COM libraries
-void FreeCOMFunctionPointers(COMFunctionPointers& comFuncPtrs) {
-    if (comFuncPtrs.hOle32) {
-        FreeLibrary(comFuncPtrs.hOle32);
-    }
-}
 
 class FileDialogEventHandler : public IFileDialogEvents {
 public:
@@ -108,41 +64,119 @@ void showDialog(COMFunctionPointers& comFuncs, IFileDialog* pFileOpenDialog, HWN
 
 std::vector<std::wstring> getFileDialogResults(COMFunctionPointers& comFuncs, IFileOpenDialog* pFileOpenDialog) {
     std::vector<std::wstring> results;
-    IShellItemArray* pResultsArray;
+    IShellItemArray* pResultsArray = nullptr;
     HRESULT hr = pFileOpenDialog->GetResults(&pResultsArray);
     if (FAILED(hr)) {
-        std::wcerr << L"Failed to get dialog results" << std::endl;
+        std::wcerr << L"Failed to get dialog results. HRESULT: " << hr << std::endl;
         comFuncs.pCoUninitialize();
         return results;
     }
 
-    DWORD itemCount;
+    DWORD itemCount = 0;
     hr = pResultsArray->GetCount(&itemCount);
     if (FAILED(hr)) {
-        std::wcerr << L"Failed to get item count" << std::endl;
+        std::wcerr << L"Failed to get item count. HRESULT: " << hr << std::endl;
         pResultsArray->Release();
         comFuncs.pCoUninitialize();
         return results;
     }
 
+    std::wcout << L"Number of items selected: " << itemCount << std::endl;
+
+    IEnumShellItems* pEnumShellItems = nullptr;
+    hr = pResultsArray->EnumItems(&pEnumShellItems);
+    if (SUCCEEDED(hr) && pEnumShellItems) {
+        IShellItem* pEnumItem = nullptr;
+        ULONG fetched = 0;
+        while (pEnumShellItems->Next(1, &pEnumItem, &fetched) == S_OK && fetched > 0) {
+            std::wcout << L"Enumerating item: " << std::endl;
+            LPWSTR pszName = nullptr;
+            hr = pEnumItem->GetDisplayName(SIGDN_NORMALDISPLAY, &pszName);
+            if (SUCCEEDED(hr)) {
+                std::wcout << L" - Display name: " << pszName << std::endl;
+                comFuncs.pCoTaskMemFree(pszName);
+            }
+
+            LPWSTR pszFilePath = nullptr;
+            hr = pEnumItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+            if (SUCCEEDED(hr)) {
+                std::wcout << L" - File path: " << pszFilePath << std::endl;
+                comFuncs.pCoTaskMemFree(pszFilePath);
+            }
+
+            SFGAOF attributes;
+            hr = pEnumItem->GetAttributes(SFGAO_FILESYSTEM | SFGAO_FOLDER, &attributes);
+            if (SUCCEEDED(hr)) {
+                std::wcout << L" - Attributes: " << attributes << std::endl;
+            }
+
+            IShellItem* pParentItem = nullptr;
+            hr = pEnumItem->GetParent(&pParentItem);
+            if (SUCCEEDED(hr) && pParentItem) {
+                LPWSTR pszParentName = nullptr;
+                hr = pParentItem->GetDisplayName(SIGDN_NORMALDISPLAY, &pszParentName);
+                if (SUCCEEDED(hr)) {
+                    std::wcout << L" - Parent: " << pszParentName << std::endl;
+                    comFuncs.pCoTaskMemFree(pszParentName);
+                }
+                pParentItem->Release();
+            }
+
+            pEnumItem->Release();
+        }
+        pEnumShellItems->Release();
+    }
+
     for (DWORD i = 0; i < itemCount; ++i) {
-        IShellItem* pItem;
+        IShellItem* pItem = nullptr;
         hr = pResultsArray->GetItemAt(i, &pItem);
         if (FAILED(hr)) {
-            std::wcerr << L"Failed to get item" << std::endl;
+            std::wcerr << L"Failed to get item at index " << i << L". HRESULT: " << hr << std::endl;
             continue;
         }
 
-        LPWSTR pszFilePath;
+        LPWSTR pszFilePath = nullptr;
         hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-        if (FAILED(hr)) {
-            std::wcerr << L"Failed to get file path" << std::endl;
-            pItem->Release();
-            continue;
+        if (SUCCEEDED(hr)) {
+            results.push_back(std::wstring(pszFilePath));
+            std::wcout << L"Item " << i << L" file path: " << pszFilePath << std::endl;
+            comFuncs.pCoTaskMemFree(pszFilePath);
+        } else {
+            std::wcerr << L"Failed to get file path for item " << i << L". HRESULT: " << hr << std::endl;
         }
 
-        results.push_back(std::wstring(pszFilePath));
-        comFuncs.pCoTaskMemFree(pszFilePath);
+        SFGAOF sfgaoAttribs = 0;
+        hr = pItem->GetAttributes(SFGAO_FILESYSTEM, &sfgaoAttribs);
+        if (SUCCEEDED(hr)) {
+            std::wcout << L"Item " << i << L" attributes: " << sfgaoAttribs << std::endl;
+        } else {
+            std::wcerr << L"Failed to get attributes for item " << i << L". HRESULT: " << hr << std::endl;
+        }
+
+        IShellItem* pParentItem = nullptr;
+        hr = pItem->GetParent(&pParentItem);
+        if (SUCCEEDED(hr) && pParentItem) {
+            LPWSTR pszParentName = nullptr;
+            hr = pParentItem->GetDisplayName(SIGDN_NORMALDISPLAY, &pszParentName);
+            if (SUCCEEDED(hr)) {
+                std::wcout << L"Item " << i << L" parent: " << pszParentName << std::endl;
+                comFuncs.pCoTaskMemFree(pszParentName);
+            } else {
+                std::wcerr << L"Failed to get parent display name for item " << i << L". HRESULT: " << hr << std::endl;
+            }
+            pParentItem->Release();
+        } else {
+            std::wcerr << L"Failed to get parent item for item " << i << L". HRESULT: " << hr << std::endl;
+        }
+
+        int comparisonResult;
+        hr = pItem->Compare(pItem, SICHINT_CANONICAL, &comparisonResult);
+        if (SUCCEEDED(hr)) {
+            std::wcout << L"Item " << i << L" comparison result (self): " << comparisonResult << std::endl;
+        } else {
+            std::wcerr << L"Failed to compare item " << i << L" with itself. HRESULT: " << hr << std::endl;
+        }
+
         pItem->Release();
     }
 
@@ -172,12 +206,12 @@ void configureFileDialog(COMFunctionPointers& comFuncs, IFileDialog* pFileDialog
     }
 
     if (!defaultFolder.empty()) {
-        IShellItem* pFolder;
-        HRESULT hr = comFuncs.pSHCreateItemFromParsingName(defaultFolder.c_str(), NULL, IID_IShellItem, reinterpret_cast<void**>(&pFolder));
-        COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to create shell item from default folder", return);
-        hr = pFileDialog->SetFolder(pFolder);
-        COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to set default folder", return);
-        pFolder->Release();
+        IShellItem* pFolder = createShellItem(comFuncs, defaultFolder);
+        if (pFolder) {
+            HRESULT hr = pFileDialog->SetFolder(pFolder);
+            COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to set default folder", return);
+            pFolder->Release();
+        }
     }
 
     if (forceFileSystem) {
@@ -192,13 +226,6 @@ void configureFileDialog(COMFunctionPointers& comFuncs, IFileDialog* pFileDialog
     COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to set dialog options", return);
 }
 
-/*void eatMouseMove() {
-    MSG msg = {0, 0, 0, 0, 0, {0, 0} };
-    while (PeekMessage(&msg, 0, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE));
-    if (msg.message == WM_MOUSEMOVE)
-        PostMessage(msg.hwnd, msg.message, 0, msg.lParam);
-    std::wcout << L"eatMouseMove triggered=" << (msg.message == WM_MOUSEMOVE) << std::endl;
-}*/
 
 // Helper function to create a shell item from a path
 IShellItem* createShellItem(COMFunctionPointers& comFuncs, const std::wstring& path) {
@@ -211,7 +238,7 @@ IShellItem* createShellItem(COMFunctionPointers& comFuncs, const std::wstring& p
 }
 
 // Helper function to get file paths from IShellItemArray
-std::vector<std::wstring> getFilePathsFromShellItemArray(IShellItemArray* pItemArray) {
+std::vector<std::wstring> getFilePathsFromShellItemArray(IShellItemArray* pItemArray, COMFunctionPointers& comFuncs) {
     std::vector<std::wstring> filePaths;
     DWORD itemCount = 0;
     HRESULT hr = pItemArray->GetCount(&itemCount);
@@ -220,11 +247,8 @@ std::vector<std::wstring> getFilePathsFromShellItemArray(IShellItemArray* pItemA
         return filePaths;
     }
 
-    COMFunctionPointers comFuncs = LoadCOMFunctionPointers();
-
     for (DWORD i = 0; i < itemCount; ++i) {
         IShellItem* pItem = nullptr;
-        //hr = pItemArray->GetItemAt(i, reinterpret_cast<IUnknown**>(&pItem));
         hr = pItemArray->GetItemAt(i, &pItem);
         if (FAILED(hr)) {
             std::wcerr << L"Failed to get item from shell item array" << std::endl;

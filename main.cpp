@@ -1,246 +1,277 @@
 #include <iostream>
-#include <sstream>  // Include the <sstream> header for std::wstringstream
+#include <vector>
+#include <random>
+#include <string>
+#include <stdexcept>
 #include "IFileDialog.h"
-#include <limits>
-#undef max // Undefine the max macro to prevent limits vs windows.h conflicts
 
-// Helper function to trim leading and trailing whitespace from a string
-std::wstring trim(const std::wstring& str) {
-    auto start = std::find_if(str.begin(), str.end(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    });
-    auto end = std::find_if(str.rbegin(), str.rend(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }).base();
+// Undefine the max macro to prevent limits vs windows.h conflicts
+#undef max
 
-    return (start < end) ? std::wstring(start, end) : std::wstring();
+enum OptionState { Default = 0, Enabled = 1, Disabled = -1 };
+
+// Function to generate a random number in the range [low, high]
+int GetRandomNumber(int low, int high) {
+    if (low > high) throw std::invalid_argument("Lower bound must be less than or equal to upper bound.");
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(low, high);
+    return dis(gen);
 }
 
-// Helper function to get user input as a string with default
-std::wstring getUserInputStr(const std::wstring& prompt, const std::wstring& defaultVal) {
-    std::wcout << prompt << L" (default: " << defaultVal << L"): ";
+// Function to get user input as a string with validation
+std::wstring getUserInputStr(const std::wstring& prompt, const std::wstring& defaultValue) {
     std::wstring input;
+    std::wcout << prompt;
     std::getline(std::wcin, input);
-    if (trim(input).empty()) {
-        return defaultVal;
+
+    if (input.empty()) {
+        return defaultValue;
     }
+
     return input;
 }
 
-// Helper function to get user input as a boolean with default
-int getUserInputTriBool(const std::wstring& prompt, int defaultVal) {
-    if (defaultVal == -1) {
-        std::wcout << prompt << L" (default: -1): ";
-    } else{
-        std::wcout << prompt << L" (default: " << (defaultVal ? L"yes" : L"no") << L"): ";
+// Function to get user input as an integer with validation
+int getUserInputInt(const std::wstring& prompt, const std::vector<int>& validChoices, int defaultValue) {
+    std::wcerr << L"DEBUG: Prompt: " << prompt << std::endl;
+    std::wcerr << L"DEBUG: Valid Choices: ";
+    for (const auto& choice : validChoices) {
+        std::wcerr << choice << L" ";
     }
-    std::wstring input;
-    std::getline(std::wcin, input);
-    input = trim(input);
+    std::wcerr << std::endl;
+    std::wcerr << L"DEBUG: Default Value: " << defaultValue << std::endl;
 
-    // Convert input to lowercase for easier comparison
-    for (auto& c : input) {
-        c = std::tolower(c);
-    }
+    while (true) {
+        std::wstring input;
+        std::wcout << prompt;
+        std::getline(std::wcin, input);
 
-    // Check for various forms of yes/no input
-    if (input == L"yes" || input == L"y" || input == L"true" || input == L"1") {
-        return 1;
-    } else if (input == L"no" || input == L"n" || input == L"false" || input == L"0") {
-        return 0;
-    } else if (input.empty()) {
-        return defaultVal;
-    } else {
-        // If input is not recognized, ask again
-        std::wcout << L"Invalid input '" + input + L"'. Please enter yes/no, y/n, true/false, or 1/0." << std::endl;
-        return getUserInputTriBool(prompt, defaultVal);
+        std::wcerr << L"DEBUG: User input: \"" << input << L"\"" << std::endl;
+
+        if (input.empty()) {
+            std::wcerr << L"DEBUG: No input provided, using default value: " << defaultValue << std::endl;
+            return defaultValue;
+        }
+
+        try {
+            int value = std::stoi(input);
+            std::wcerr << L"DEBUG: Parsed input: " << value << std::endl;
+
+            if (std::find(validChoices.begin(), validChoices.end(), value) != validChoices.end()) {
+                std::wcerr << L"DEBUG: Input is a valid choice: " << value << std::endl;
+                return value;
+            } else {
+                std::wcerr << L"DEBUG: Input is not a valid choice: " << value << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::wcerr << L"DEBUG: Exception caught: " << e.what() << std::endl;
+        }
+
+        std::wcout << L"Invalid input. Please enter a valid choice." << std::endl;
     }
 }
 
-void showConfigMenu() {
-    std::wcout << L"Configure File Dialog Options:\n";
-    std::wcout << L"1. Allow multiple selection (default: no)\n";
-    std::wcout << L"2. Add to recent (default: yes)\n";
-    std::wcout << L"3. Show hidden files (default: no)\n";
-    std::wcout << L"4. No change dir (default: no)\n";
-    std::wcout << L"5. Confirm overwrite (only for save dialog, default: yes)\n";
-    std::wcout << L"6. Hide MRU places (default: no)\n";
-    std::wcout << L"7. Hide pinned places (default: no)\n";
-    std::wcout << L"8. Share aware (default: no)\n";
-    std::wcout << L"Enter your choices as a comma-separated list (e.g., 1,3,5): ";
+// Function to manage file type filters
+void manageFilters(std::vector<COMDLG_FILTERSPEC>& filters, bool randomize) {
+    if (randomize) {
+        int numFilters = GetRandomNumber(1, 25);
+        filters.push_back({ _wcsdup(L"All Files"), _wcsdup(L"*.*") });
+        for (int i = 0; i < numFilters; ++i) {
+            std::wstring filterName = L"Random Filter " + std::to_wstring(i + 1);
+            std::wstring filterSpec = L"*." + std::to_wstring(i + 1);
+            filters.push_back({ _wcsdup(filterName.c_str()), _wcsdup(filterSpec.c_str()) });
+        }
+        return;
+    }
+
+    while (true) {
+        std::wcout << L"\nFile Type Filters Menu:\n";
+        std::wcout << L"1. Add New Filter\n";
+        for (size_t i = 0; i < filters.size(); ++i) {
+            std::wcout << (i + 2) << L". Edit Filter: " << filters[i].pszName << L" (" << filters[i].pszSpec << L")\n";
+        }
+        std::wcout << (filters.size() + 2) << L". Done\n";
+        int choice = getUserInputInt(L"Choose an option: ", { 1, static_cast<int>(filters.size() + 2) }, filters.size() + 2);
+
+        if (choice == 1) {
+            std::wstring filterName = getUserInputStr(L"Enter filter name: ", L"Default Filter");
+            std::wstring filterSpec = getUserInputStr(L"Enter filter spec: ", L"*.*");
+            filters.push_back({ _wcsdup(filterName.c_str()), _wcsdup(filterSpec.c_str()) });
+        } else if (choice == filters.size() + 2) {
+            break;
+        } else {
+            size_t filterIndex = choice - 2;
+            std::wcout << L"\nEditing Filter: " << filters[filterIndex].pszName << L" (" << filters[filterIndex].pszSpec << L")\n";
+            filters[filterIndex].pszName = _wcsdup(getUserInputStr(L"Enter new filter name: ", filters[filterIndex].pszName).c_str());
+            filters[filterIndex].pszSpec = _wcsdup(getUserInputStr(L"Enter new filter spec: ", filters[filterIndex].pszSpec).c_str());
+        }
+    }
 }
 
-// Helper function to configure file dialog options based on user input
-DWORD getFileDialogOptions(bool isSaveDialog) {
+// Function to display and get user choices for file dialog options
+void configureDialogOptions(std::vector<int>& optionStates, bool randomize) {
+    struct Option {
+        std::wstring name;
+        int defaultValue;
+    };
+
+    std::vector<Option> dialogOptions = {
+        { L"Allow multiple selection", Default },
+        { L"Do not add to recent", Default },
+        { L"Show hidden files", Default },
+        { L"No change dir", Default },
+        { L"Confirm overwrite", Default },
+        { L"Hide MRU places", Default },
+        { L"Hide pinned places", Default },
+        { L"Share aware", Default }
+    };
+
+    optionStates.resize(dialogOptions.size(), Default); // Ensure optionStates is properly initialized
+
+    if (randomize) {
+        for (size_t i = 0; i < dialogOptions.size(); ++i) {
+            optionStates[i] = GetRandomNumber(-1, 1);
+        }
+        return;
+    }
+
+    auto optionStateToString = [](int state) {
+        switch (state) {
+            case Enabled: return L"Enabled";
+            case Disabled: return L"Disabled";
+            default: return L"Default";
+        }
+    };
+
+    while (true) {
+        std::wcout << L"\nDialog Options Menu:\n";
+        for (size_t i = 0; i < dialogOptions.size(); ++i) {
+            std::wcout << (i + 1) << L". " << dialogOptions[i].name << L" (Current: " << optionStateToString(optionStates[i]) << L")\n";
+        }
+        std::wcout << (dialogOptions.size() + 1) << L". Done\n";
+
+        std::vector<int> validChoices;
+        for (int i = 1; i <= dialogOptions.size() + 1; ++i) {
+            validChoices.push_back(i);
+        }
+        
+        int choice = getUserInputInt(L"Choose an option to change or done to continue: ", validChoices, dialogOptions.size() + 1);
+        std::wcerr << L"DEBUG: User chose option: " << choice << std::endl;
+
+        if (choice == dialogOptions.size() + 1) {
+            break;
+        } else {
+            size_t optionIndex = choice - 1;
+            std::wcerr << L"DEBUG: Changing option: " << dialogOptions[optionIndex].name << std::endl;
+
+            int newValue = getUserInputInt(L"Select " + dialogOptions[optionIndex].name + L" option:\n1. Enabled\n2. Disabled\n3. Default\nChoose an option: ", { 1, 2, 3 }, 3);
+            std::wcerr << L"DEBUG: New value for " << dialogOptions[optionIndex].name << L": " << newValue << std::endl;
+
+            optionStates[optionIndex] = (newValue == 1) ? Enabled : (newValue == 2) ? Disabled : Default;
+        }
+    }
+}
+
+
+// Function to get file dialog options from user
+DWORD getFileDialogOptions(bool isSaveDialog, bool randomize, std::vector<COMDLG_FILTERSPEC>& filters) {
     DWORD options = FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_FORCEFILESYSTEM;
 
-    showConfigMenu();
-    std::wstring input;
-    std::getline(std::wcin, input);
-    input = trim(input);
+    std::vector<int> optionStates;
+    configureDialogOptions(optionStates, randomize);
 
-    if (!input.empty()) {
-        std::wstringstream ss(input);
-        std::wstring token;
-        while (std::getline(ss, token, L',')) {
-            int choice = std::stoi(trim(token));
-            switch (choice) {
-                case 1:
-                    options |= FOS_ALLOWMULTISELECT;
-                    break;
-                case 2:
-                    options &= ~FOS_DONTADDTORECENT;
-                    break;
-                case 3:
-                    options |= FOS_FORCESHOWHIDDEN;
-                    break;
-                case 4:
-                    options |= FOS_NOCHANGEDIR;
-                    break;
-                case 5:
-                    if (isSaveDialog) {
-                        options |= FOS_OVERWRITEPROMPT;
-                    }
-                    break;
-                case 6:
-                    options |= FOS_HIDEMRUPLACES;
-                    break;
-                case 7:
-                    options |= FOS_HIDEPINNEDPLACES;
-                    break;
-                case 8:
-                    options |= FOS_SHAREAWARE;
-                    break;
-                default:
-                    std::wcout << L"Invalid choice: " << choice << std::endl;
-                    break;
-            }
+    struct OptionFlag {
+        DWORD flag;
+        bool isSaveDialogOnly;
+    };
+
+    std::vector<OptionFlag> optionFlags = {
+        { FOS_ALLOWMULTISELECT, false },
+        { FOS_DONTADDTORECENT, false },
+        { FOS_FORCESHOWHIDDEN, false },
+        { FOS_NOCHANGEDIR, false },
+        { FOS_OVERWRITEPROMPT, true },
+        { FOS_HIDEMRUPLACES, false },
+        { FOS_HIDEPINNEDPLACES, false },
+        { FOS_SHAREAWARE, false }
+    };
+
+    for (size_t i = 0; i < optionStates.size(); ++i) {
+        if (optionStates[i] == Enabled) {
+            options |= optionFlags[i].flag;
+        } else if (optionStates[i] == Disabled) {
+            options &= ~optionFlags[i].flag;
         }
     }
 
-    // Handle defaults
-    if (!(options & FOS_ALLOWMULTISELECT)) {
-        options &= ~FOS_ALLOWMULTISELECT;
-    }
-    if (!(options & FOS_DONTADDTORECENT)) {
-        options |= FOS_DONTADDTORECENT;
-    }
-    if (!(options & FOS_FORCESHOWHIDDEN)) {
-        options &= ~FOS_FORCESHOWHIDDEN;
-    }
-    if (!(options & FOS_NOCHANGEDIR)) {
-        options &= ~FOS_NOCHANGEDIR;
-    }
-    if (isSaveDialog && !(options & FOS_OVERWRITEPROMPT)) {
-        options |= FOS_OVERWRITEPROMPT;
-    }
-    if (!(options & FOS_HIDEMRUPLACES)) {
-        options &= ~FOS_HIDEMRUPLACES;
-    }
-    if (!(options & FOS_HIDEPINNEDPLACES)) {
-        options &= ~FOS_HIDEPINNEDPLACES;
-    }
-    if (!(options & FOS_SHAREAWARE)) {
-        options &= ~FOS_SHAREAWARE;
-    }
+    manageFilters(filters, randomize);
 
     return options;
 }
 
-
-// Text-based menu to select options
-void showMenu() {
-    std::wcout << L"Select Dialog Type:\n";
-    std::wcout << L"1. Open File Dialog\n";
-    std::wcout << L"2. Save File Dialog\n";
-    std::wcout << L"3. Base File Dialog (parent of open/save dialogs)\n";
-    std::wcout << L"Choose an option: ";
-}
-
-int getUserMenuChoice(int min, int max, bool acceptsDefaultNoInput) {
-    int choice;
-    while (true) {
-        std::wstring input;
-        std::getline(std::wcin, input);
-        input = trim(input);
-        if (input.empty() && acceptsDefaultNoInput) {
-            return -1;
-        }
-        if (input.empty()) {
-            std::wcerr << L"Invalid input. Please enter a number." << std::endl;
-            showMenu();
-            continue;
-        }
-        std::wstringstream ss(input);
-        if (ss >> choice) {
-            if (choice >= min && choice <= max) {
-                break;
-            } else {
-                std::wcerr << L"Invalid choice. Please enter a number between 1 and 3." << std::endl;
-                showMenu();
-            }
-        } else {
-            std::wcerr << L"Invalid input. Please enter a valid number." << std::endl;
-            showMenu();
-        }
-    }
-    return choice;
-}
-
 int main() {
-    COMFunctionPointers comFuncs = LoadCOMFunctionPointers();
+    while (true) {
+        std::wcout << L"Select Dialog Type:\n1. Open File Dialog\n2. Save File Dialog\n3. Base File Dialog (parent of open/save dialogs)\n4. Randomize all options\nChoose an option: ";
+        int dialogType = getUserInputInt(L"", { 1, 2, 3, 4 }, 4);
 
-    if (!comFuncs.pCoInitialize || !comFuncs.pCoCreateInstance ||
-        !comFuncs.pCoTaskMemFree || !comFuncs.pCoUninitialize || !comFuncs.pSHCreateItemFromParsingName) {
-        std::cerr << "Failed to load one or more COM functions." << std::endl;
-        return 1;
-    }
+        bool randomize = (dialogType == 4);
+        bool isSaveDialog = (dialogType == 2);
 
-    HRESULT hr = comFuncs.pCoInitialize(NULL);
-    if (FAILED(hr)) {
-        std::cerr << "CoInitialize failed: " << hr << std::endl;
-        return 1;
-    }
+        std::wstring title = randomize ? L"My C++ IFileOpenDialog" : getUserInputStr(L"Dialog title (default: My C++ IFileOpenDialog): ", L"My C++ IFileOpenDialog");
+        std::wstring defaultFolder = randomize ? L"C:" : getUserInputStr(L"Default folder path (default: C:): ", L"C:");
 
-    showMenu();
-    int choice = getUserMenuChoice(1, 3, true);
-    bool isSaveDialog = (choice == 2);
+        std::vector<COMDLG_FILTERSPEC> filters;
+        DWORD options = getFileDialogOptions(isSaveDialog, randomize, filters);
 
-    IFileDialog* pFileDialog = NULL;
-    createFileDialog(comFuncs, &pFileDialog, isSaveDialog);
+        COMFunctionPointers comFuncs = LoadCOMFunctionPointers();
+        try {
+            if (!comFuncs.pCoInitialize || !comFuncs.pCoCreateInstance ||
+                !comFuncs.pCoTaskMemFree || !comFuncs.pCoUninitialize || !comFuncs.pSHCreateItemFromParsingName) {
+                throw std::runtime_error("Failed to load one or more COM functions.");
+            }
 
-    std::wstring title = getUserInputStr(L"Enter dialog title: ", L"My C++ IFileOpenDialog");
-    std::wstring defaultFolder = getUserInputStr(L"Enter default folder path: ", L"C:");
+            HRESULT hr = comFuncs.pCoInitialize(NULL);
+            if (FAILED(hr)) {
+                throw std::runtime_error("CoInitialize failed: " + std::to_string(hr));
+            }
 
-    std::vector<COMDLG_FILTERSPEC> filters;
-    int numFilters = getUserInputTriBool(L"Enter number of file filters: ", -1);
-    if (numFilters == -1) {
-        // User pressed Enter without entering a number, so we'll use the default number of filters (Any, .txt)
-        filters.push_back({ L"Any files", L"*.*" });
-        filters.push_back({ L"Text files", L"*.txt" });
-    } else {
-        for (int i = 0; i < numFilters; ++i) {
-            std::wstring filterName = getUserInputStr(L"Enter filter name: ", L"required");
-            std::wstring filterSpec = getUserInputStr(L"Enter filter spec: ", L"required");
-            filters.push_back({ filterName.c_str(), filterSpec.c_str() });
+            IFileDialog* pFileDialog = nullptr;
+            createFileDialog(comFuncs, &pFileDialog, isSaveDialog);
+
+            if (pFileDialog == nullptr) {
+                throw std::runtime_error("Failed to create file dialog.");
+            }
+
+            configureFileDialog(comFuncs, pFileDialog, filters, defaultFolder, options);
+            showDialog(comFuncs, pFileDialog);
+
+            if (!isSaveDialog) {
+                IFileOpenDialog* pFileOpenDialog = static_cast<IFileOpenDialog*>(pFileDialog);
+                std::vector<std::wstring> results = getFileDialogResults(comFuncs, pFileOpenDialog);
+                for (const auto& filePath : results) {
+                    std::wcout << L"Selected file: " << filePath << std::endl;
+                }
+            }
+
+            pFileDialog->Release();
+            comFuncs.pCoUninitialize();
+            FreeCOMFunctionPointers(comFuncs);
+
+        } catch (const std::exception& ex) {
+            std::cerr << "Error: " << ex.what() << std::endl;
+            if (comFuncs.pCoUninitialize) comFuncs.pCoUninitialize();
+            FreeCOMFunctionPointers(comFuncs);
+            return 1;
+        }
+
+        std::wcout << L"Do you want to configure another dialog? (yes/no): ";
+        std::wstring continueInput;
+        std::getline(std::wcin, continueInput);
+        if (continueInput != L"yes") {
+            break;
         }
     }
-
-    DWORD options = getFileDialogOptions(isSaveDialog);
-    configureFileDialog(comFuncs, pFileDialog, filters, defaultFolder, options);
-    showDialog(comFuncs, pFileDialog);
-
-    if (!isSaveDialog) {
-        IFileOpenDialog* pFileOpenDialog = static_cast<IFileOpenDialog*>(pFileDialog);
-        std::vector<std::wstring> results = getFileDialogResults(comFuncs, pFileOpenDialog);
-        for (const auto& filePath : results) {
-            std::wcout << L"Selected file: " << filePath << std::endl;
-        }
-    }
-
-    pFileDialog->Release();
-    comFuncs.pCoUninitialize();
-    FreeCOMFunctionPointers(comFuncs);
 
     return 0;
 }

@@ -44,6 +44,13 @@
         "xlocnum": "cpp",
         "xstddef": "cpp",
         "xtr1common": "cpp",
-        "xutility": "cpp"
-    }
+        "xutility": "cpp",
+        "functional": "cpp",
+        "list": "cpp",
+        "xhash": "cpp",
+        "random": "cpp",
+        "algorithm": "cpp",
+        "unordered_map": "cpp"
+    },
+    "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }
