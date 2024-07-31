@@ -47,12 +47,16 @@ private:
     LONG refCount;
 };
 
-void createFileDialog(COMFunctionPointers& comFuncs, IFileDialog** ppFileDialog, bool isSaveDialog) {
+void createFileDialog(COMFunctionPointers& comFuncs, IFileDialog** ppFileDialog, int dialogType) {
     HRESULT hr;
-    if (isSaveDialog) {
-        hr = comFuncs.pCoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileSaveDialog, reinterpret_cast<void**>(ppFileDialog));
-    } else {
+    if (dialogType == 1 || dialogType == 4) {
         hr = comFuncs.pCoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileOpenDialog, reinterpret_cast<void**>(ppFileDialog));
+    } else if (dialogType == 2) {
+        hr = comFuncs.pCoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileSaveDialog, reinterpret_cast<void**>(ppFileDialog));
+    } else if (dialogType == 3) {
+        hr = comFuncs.pCoCreateInstance(CLSID_FileDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileDialog, reinterpret_cast<void**>(ppFileDialog));
+    } else {
+        throw std::runtime_error("Invalid dialog type.");
     }
     COM_REQUIRE_SUCCESS(hr, comFuncs, L"Failed to create file dialog", return);
 }
